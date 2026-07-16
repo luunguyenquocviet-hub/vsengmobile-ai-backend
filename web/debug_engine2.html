@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔬 Soi Engine ② — VsengMobile</title>
+<style>
+  :root{--line:#e2e8f0;--muted:#64748b;--blue:#2563eb;--teal:#0d9488;--red:#dc2626;
+        --amber:#d97706;--violet:#7c3aed}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f1f5f9;color:#0f172a;padding:20px}
+  .wrap{max-width:1240px;margin:auto}
+  h1{font-size:20px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .bar{display:flex;gap:8px;margin-bottom:16px}
+  input{border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;width:160px}
+  button{border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:13.5px;
+         background:var(--blue);color:#fff;cursor:pointer}
+  button:hover{filter:brightness(1.1)}
+  .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px}
+  .card h2{font-size:14.5px;margin-bottom:10px}
+  .tier{display:inline-block;padding:5px 12px;border-radius:99px;font-weight:700;font-size:13px}
+  .t-behavior_personalized{background:#ccfbf1;color:#0f766e}
+  .t-demographic_coldstart{background:#ede9fe;color:#6d28d9}
+  .t-trending{background:#e2e8f0;color:#475569}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{background:#f8fafc;color:var(--muted);font-size:10.5px;text-transform:uppercase;
+     padding:7px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  tr:hover td{background:#f8fafc}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bi-bar{height:14px;border-radius:4px;background:linear-gradient(90deg,#14b8a6,#0d9488);
+          display:inline-block;vertical-align:middle}
+  .kw{display:inline-block;background:#dbeafe;color:#1d4ed8;border-radius:6px;
+      padding:2px 9px;font-size:12px;font-weight:700;margin:2px}
+  .muted{color:var(--muted)} .small{font-size:11.5px}
+  .hit{background:#fef9c3}
+  .penalty{color:var(--red);font-weight:700}
+  .badge3{background:#ffedd5;color:#c2410c;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:700}
+  .total{font-weight:800;color:var(--blue)}
+  details{margin-top:10px}
+  summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--violet)}
+  .scenario{font-size:13px;line-height:1.9;color:#334155}
+  .scenario b{color:#0f172a}
+  #err{color:var(--red);font-weight:600;margin-bottom:12px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔬 Soi Engine ② — pipeline cá nhân hóa</h1>
+  <p class="sub">Nhìn tận mắt Engine ② dùng tín hiệu gì và chấm điểm ra sao cho từng user. Endpoint chỉ đọc — không ghi impression, xem thoải mái không làm bẩn dữ liệu.</p>
+
+  <div class="bar">
+    <input id="uid" type="number" value="878" placeholder="user_id">
+    <button onclick="load()">Soi user này</button>
+  </div>
+  <div id="err"></div>
+  <div id="out" style="display:none">
+
+    <div class="card">
+      <h2>Tier đang phục vụ: <span class="tier" id="tier"></span></h2>
+      <div class="small muted" id="tierReason"></div>
+      <div class="small" style="margin-top:6px" id="counts"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>📡 Tín hiệu vào — 15 hành vi gần nhất</h2>
+        <table><thead><tr><th>Hành động</th><th>Sản phẩm</th><th>Hãng</th></tr></thead>
+          <tbody id="behaviors"></tbody></table>
+        <div style="margin-top:8px"><span class="small muted">Từ khóa search gần nhất:</span>
+          <span id="keywords"></span></div>
+      </div>
+      <div class="card">
+        <h2>❤️ Gu hãng (brand interest) — sau khi giảm boost hãng vừa mua</h2>
+        <table><tbody id="brands"></tbody></table>
+        <div class="small muted" id="suppressed" style="margin-top:6px"></div>
+        <div class="small" style="margin-top:6px" id="budget"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🧮 Bảng điểm top ứng viên — điểm² = 0.30·brand + 0.25·search + 0.15·giá + 0.20·sentiment + 0.10·phổ biến</h2>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Sản phẩm</th><th>Hãng</th><th class="num">Giá</th>
+          <th class="num">Brand ×.30</th><th class="num">Search ×.25</th><th class="num">Giá ×.15</th>
+          <th class="num">Senti ×.20</th><th class="num">Phổ biến ×.10</th>
+          <th class="num">Điểm ②</th><th class="num">Phạt skip</th>
+        </tr></thead>
+        <tbody id="scores"></tbody>
+      </table>
+      </div>
+      <div class="small muted" style="margin-top:6px">Ô vàng = tên khớp từ khóa vừa search. Phạt skip = điểm bị trừ vì hiển thị nhiều lần mà user ngó lơ.</div>
+    </div>
+
+    <div class="card">
+      <h2>🏁 Trang 1 thực tế trả về app — sau đa dạng hóa hãng + trộn 30% Engine ③</h2>
+      <table>
+        <thead><tr><th>Vị trí</th><th>Sản phẩm</th><th>Hãng</th>
+          <th class="num">Điểm ②</th><th class="num">Điểm ③</th></tr></thead>
+        <tbody id="final"></tbody>
+      </table>
+      <div class="small muted" style="margin-top:6px">So cột "Điểm ②" với thứ tự thực tế: chỗ nào đảo là do quota hãng (tối đa 60%/hãng, 2 suất khám phá) hoặc điểm chất lượng Engine ③ kéo lên/xuống.</div>
+    </div>
+
+    <details class="card">
+      <summary>📋 Kịch bản tự kiểm chứng "đúng ý mình" (bấm để mở)</summary>
+      <div class="scenario" style="margin-top:8px">
+        <b>1. Tín hiệu search (trọng số 0.25):</b> trong app, search "nokia" → quay lại đây bấm Soi → các máy tên chứa "nokia" phải sáng ô vàng và nhảy hạng.<br>
+        <b>2. Tín hiệu hành vi (0.30):</b> bấm xem 4–5 máy Samsung → Soi lại → brand interest "samsung" tăng, điểm Brand cột Samsung tăng theo.<br>
+        <b>3. Đa dạng hóa:</b> dù samsung ≈ 1.0, Trang 1 không được quá 6/10 máy Samsung — luôn có 2 suất "khám phá" hãng khác.<br>
+        <b>4. Post-purchase: </b>đặt mua 1 máy Oppo (COD) → Soi → "oppo" xuất hiện ở "hãng vừa mua bị giảm boost", điểm brand oppo tụt trong 14 ngày.<br>
+        <b>5. Skip ngầm:</b> sản phẩm hiện đi hiện lại trên feed mà không bấm → cột "Phạt skip" > 0 và tụt hạng dần.<br>
+        <b>6. Cold-start nhóm tuổi:</b> Soi user chưa có hành vi nào (vd 999) → tier tím "demographic_coldstart", gu hãng lấy theo nhóm tuổi/giới tính.<br>
+        <b>7. Khách vãng lai:</b> user không tồn tại/không hồ sơ → tier xám "trending".
+      </div>
+    </details>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8000/api";
+const vnd = n => n == null ? "—" : Number(n).toLocaleString("vi-VN") + "₫";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const f3 = v => v == null ? "—" : Number(v).toFixed(3);
+
+async function load(){
+  const uid = document.getElementById("uid").value;
+  const err = document.getElementById("err"), out = document.getElementById("out");
+  err.style.display = "none";
+  try{
+    const res = await fetch(`${API}/debug/engine2/${uid}`);
+    const d = await res.json();
+    if(!res.ok) throw new Error(d.detail || res.status);
+    render(d);
+    out.style.display = "block";
+  }catch(e){
+    out.style.display = "none";
+    err.style.display = "block";
+    err.textContent = "❌ " + e.message + " — backend đang chạy chứ?";
+  }
+}
+
+function render(d){
+  const tier = document.getElementById("tier");
+  tier.className = "tier t-" + d.tier;
+  tier.textContent = d.tier;
+  document.getElementById("tierReason").textContent = d.tier_reason;
+  document.getElementById("counts").innerHTML =
+    `Ứng viên được chấm: <b>${d.so_ung_vien_duoc_cham ?? 0}</b> · ` +
+    `SP đang bị phạt skip ngầm: <b>${d.so_sp_bi_ngo_lo_dang_phat ?? 0}</b> · ` +
+    `Hành vi trong cửa sổ 100: <b>${d.signals.so_hanh_vi_100_gan_nhat}</b>`;
+
+  const icons = {view:"👁", click:"👆", search:"🔍", add_to_cart:"🛒", add_to_wishlist:"❤️", buy:"💰", skip:"🙈"};
+  document.getElementById("behaviors").innerHTML = (d.signals.hanh_vi_gan_nhat.length
+    ? d.signals.hanh_vi_gan_nhat.map(b =>
+      `<tr><td>${icons[b.action] || ""} ${esc(b.action)}</td>
+           <td>${esc(b.name)}</td><td>${esc(b.brand ?? "—")}</td></tr>`).join("")
+    : `<tr><td colspan="3" class="muted">Chưa có hành vi nào</td></tr>`);
+
+  document.getElementById("keywords").innerHTML =
+    (d.signals.tu_khoa_search.length
+      ? d.signals.tu_khoa_search.map(k => `<span class="kw">${esc(k)}</span>`).join("")
+      : '<span class="small muted">không có</span>');
+
+  const bi = d.signals.brand_interest_sau_suppression;
+  const maxv = Math.max(0.001, ...Object.values(bi));
+  document.getElementById("brands").innerHTML = (Object.keys(bi).length
+    ? Object.entries(bi).map(([b, v]) =>
+      `<tr><td style="width:110px"><b>${esc(b)}</b></td>
+           <td><span class="bi-bar" style="width:${Math.round(v / maxv * 220)}px"></span></td>
+           <td class="num">${f3(v)}</td></tr>`).join("")
+    : `<tr><td class="muted">trống</td></tr>`);
+
+  document.getElementById("suppressed").textContent =
+    d.signals.hang_vua_mua_bi_giam_boost.length
+      ? "🛒 Hãng vừa mua bị giảm boost 14 ngày: " + d.signals.hang_vua_mua_bi_giam_boost.join(", ")
+      : "Không có hãng nào đang bị giảm boost sau mua.";
+  const band = d.signals.dai_gia_quen_thuoc;
+  document.getElementById("budget").innerHTML = band
+    ? `💰 Dải giá quen thuộc: <b>${vnd(band[0])} – ${vnd(band[1])}</b>`
+    : "💰 Chưa đủ dữ liệu suy ra dải giá.";
+
+  const W = d.signals.trong_so_diem;
+  document.getElementById("scores").innerHTML = d.bang_diem.map(r => {
+    const c = r.thanh_phan;
+    return `<tr>
+      <td>${r.hang}</td>
+      <td style="max-width:270px">${esc(r.name)}</td>
+      <td>${esc(r.brand ?? "—")}</td>
+      <td class="num">${vnd(r.price)}</td>
+      <td class="num">${f3(c.brand * W.brand)}<span class="small muted"> (${f3(c.brand)})</span></td>
+      <td class="num ${c.keyword_hit ? "hit" : ""}">${f3(c.search * W.search)}${c.keyword_hit ? ` <span class="small">"${esc(c.keyword_hit)}"</span>` : ""}</td>
+      <td class="num">${f3(c.price * W.price)}<span class="small muted"> (${f3(c.price)})</span></td>
+      <td class="num">${f3(c.sentiment * W.sentiment)}<span class="small muted"> (${c.reviews} rv)</span></td>
+      <td class="num">${f3(c.popularity * W.popularity)}</td>
+      <td class="num total">${f3(r.diem_engine2)}</td>
+      <td class="num">${r.bi_phat_skip > 0 ? `<span class="penalty">−${f3(r.bi_phat_skip)}</span>` : "—"}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="11" class="muted">Tier trending — không chấm điểm cá nhân hóa.</td></tr>`;
+
+  document.getElementById("final").innerHTML = d.trang_1_cuoi_cung.map(r =>
+    `<tr><td><b>${r.vi_tri}</b></td><td>${esc(r.name)}</td><td>${esc(r.brand ?? "—")}</td>
+         <td class="num">${f3(r.diem_engine2)}</td>
+         <td class="num"><span class="badge3">${f3(r.engine3_score)}</span></td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">—</td></tr>`;
+}
+
+load();
+</script>
+</body>
+</html>

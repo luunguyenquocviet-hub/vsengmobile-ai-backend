@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý đơn hàng — VsengMobile Admin</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --line:#e2e8f0; --text:#0f172a; --muted:#64748b;
+    --blue:#2563eb; --blue-soft:#dbeafe; --amber:#d97706; --amber-soft:#fef3c7;
+    --violet:#7c3aed; --violet-soft:#ede9fe; --green:#16a34a; --green-soft:#dcfce7;
+    --red:#dc2626; --red-soft:#fee2e2; --gray-soft:#f1f5f9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  header{background:linear-gradient(90deg,#1e3a8a,#2563eb);color:#fff;padding:16px 28px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50;
+    box-shadow:0 2px 10px rgba(0,0,0,.15)}
+  header h1{font-size:19px;font-weight:700;flex:1;white-space:nowrap}
+  header h1 small{font-weight:400;opacity:.75;font-size:12.5px;display:block}
+  .search-wrap{display:flex;gap:8px}
+  .search-wrap input{border:none;border-radius:8px;padding:9px 14px;width:290px;font-size:14px;outline:none}
+  .btn{border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;
+    transition:filter .15s, transform .05s}
+  .btn:active{transform:scale(.97)}
+  .btn:hover{filter:brightness(1.08)}
+  .btn-light{background:rgba(255,255,255,.18);color:#fff}
+  .btn-blue{background:var(--blue);color:#fff}
+  .btn-violet{background:var(--violet);color:#fff}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-red{background:var(--red);color:#fff}
+  .btn-ghost{background:var(--gray-soft);color:var(--text)}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+
+  main{max-width:1180px;margin:22px auto;padding:0 18px}
+
+  /* ---- Tab thống kê theo trạng thái ---- */
+  .tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px}
+  .tab{background:var(--card);border:2px solid transparent;border-radius:12px;padding:12px 8px;text-align:center;
+    cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+  .tab:hover{transform:translateY(-2px)}
+  .tab .num{font-size:22px;font-weight:800}
+  .tab .lbl{font-size:12px;color:var(--muted);margin-top:2px}
+  .tab.active{border-color:var(--blue);background:var(--blue-soft)}
+  .tab[data-s="cho_xac_nhan"] .num{color:var(--amber)}
+  .tab[data-s="da_xac_nhan"] .num{color:var(--blue)}
+  .tab[data-s="dang_van_chuyen"] .num{color:var(--violet)}
+  .tab[data-s="da_giao"] .num{color:var(--green)}
+  .tab[data-s="da_huy"] .num{color:var(--red)}
+  .revenue{font-size:13px;color:var(--muted);margin-bottom:14px}
+  .revenue b{color:var(--green)}
+
+  /* ---- Bảng đơn hàng ---- */
+  .panel{background:var(--card);border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{background:#f8fafc;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.4px;
+    padding:12px 14px;text-align:left;border-bottom:1px solid var(--line)}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tbody tr:hover{background:#f8fafc}
+  .oid{font-weight:700;color:var(--blue);cursor:pointer}
+  .cust b{display:block}.cust span{color:var(--muted);font-size:12.5px}
+  .money{font-weight:700;white-space:nowrap}
+  .badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap}
+  .b-cho_xac_nhan{background:var(--amber-soft);color:var(--amber)}
+  .b-da_xac_nhan{background:var(--blue-soft);color:var(--blue)}
+  .b-dang_van_chuyen{background:var(--violet-soft);color:var(--violet)}
+  .b-da_giao{background:var(--green-soft);color:var(--green)}
+  .b-da_huy{background:var(--red-soft);color:var(--red)}
+  .pay-chip{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:3px}
+  .pay-cod{background:var(--gray-soft);color:#475569}
+  .pay-vnpay{background:#e0f2fe;color:#0369a1}
+  .pay-bank_qr{background:var(--green-soft);color:#15803d}
+  .pay-status{display:block;font-size:11.5px}
+  .ps-paid{color:var(--green)} .ps-unpaid{color:var(--amber)} .ps-failed{color:var(--red)}
+  .actions{display:flex;gap:6px;flex-wrap:wrap}
+  .actions .btn{padding:6px 10px;font-size:12px}
+  .date{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .empty{text-align:center;padding:48px;color:var(--muted)}
+
+  /* ---- Phân trang ---- */
+  .pager{display:flex;justify-content:space-between;align-items:center;padding:13px 16px}
+  .pager span{color:var(--muted);font-size:13px}
+
+  /* ---- Modal ---- */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;
+    justify-content:center;z-index:100;padding:16px}
+  .overlay.show{display:flex}
+  .modal{background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;
+    box-shadow:0 24px 60px rgba(0,0,0,.3);animation:pop .18s ease}
+  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .modal-head h2{font-size:17px;flex:1}
+  .modal-body{padding:18px 22px}
+  .close-x{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:13.5px;margin-bottom:16px}
+  .info-grid div span{color:var(--muted);display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px}
+  .items-tbl td{padding:8px 10px;font-size:13px}
+  .items-tbl img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+  .modal-total{display:flex;justify-content:flex-end;gap:18px;font-size:15px;margin-top:12px;font-weight:700}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--line)}
+  .cancel-box{margin-top:14px;display:none}
+  .cancel-box textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font-size:13.5px;
+    font-family:inherit;resize:vertical;min-height:60px}
+  .flow-hint{background:#f8fafc;border:1px dashed var(--line);border-radius:10px;padding:10px 14px;
+    font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.7}
+
+  /* ---- Toast ---- */
+  #toasts{position:fixed;top:18px;right:18px;z-index:200;display:flex;flex-direction:column;gap:8px}
+  .toast{background:#0f172a;color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);animation:slide .25s ease;max-width:360px}
+  .toast.ok{background:var(--green)} .toast.err{background:var(--red)}
+  @keyframes slide{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+  @media(max-width:860px){
+    .tabs{grid-template-columns:repeat(3,1fr)}
+    .hide-sm{display:none}
+    .search-wrap input{width:170px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛠️ Quản lý đơn hàng<small>VsengMobile Admin</small></h1>
+  <div class="search-wrap">
+    <input id="searchInput" placeholder="🔍 Mã đơn / tên khách / SĐT..." onkeydown="if(event.key==='Enter')applySearch()">
+    <button class="btn btn-light" onclick="applySearch()">Tìm</button>
+    <button class="btn btn-light" onclick="reloadAll()" title="Tải lại">⟳</button>
+  </div>
+</header>
+
+<main>
+  <div class="tabs" id="tabs"></div>
+  <div class="revenue" id="revenue"></div>
+
+  <div class="panel">
+    <table>
+      <thead><tr>
+        <th>Mã đơn</th><th>Khách hàng</th><th class="hide-sm">SP</th><th>Tổng tiền</th>
+        <th class="hide-sm">Thanh toán</th><th>Trạng thái</th><th class="hide-sm">Ngày đặt</th><th>Thao tác</th>
+      </tr></thead>
+      <tbody id="orderRows"><tr><td colspan="8" class="empty">Đang tải...</td></tr></tbody>
+    </table>
+    <div class="pager">
+      <span id="pageInfo"></span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" id="prevBtn" onclick="changePage(-1)">← Trước</button>
+        <button class="btn btn-ghost" id="nextBtn" onclick="changePage(1)">Sau →</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal chi tiết đơn -->
+<div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="mTitle">Chi tiết đơn hàng</h2>
+      <span class="badge" id="mBadge"></span>
+      <button class="close-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+    <div class="modal-actions" id="mActions"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* ================== CẤU HÌNH ================== */
+const API = "http://localhost:8000/api";   // đổi nếu backend chạy host/port khác
+const LIMIT = 10;
+
+/* Nhãn + nút hành động cho từng trạng thái đích */
+const LABELS = {cho_xac_nhan:"Chờ xác nhận", da_xac_nhan:"Đã xác nhận",
+  dang_van_chuyen:"Đang vận chuyển", da_giao:"Đã giao", da_huy:"Đã hủy"};
+const ACTION_BTN = {
+  da_xac_nhan:     {text:"✔ Xác nhận",   cls:"btn-blue"},
+  dang_van_chuyen: {text:"🚚 Giao hàng", cls:"btn-violet"},
+  da_giao:         {text:"📦 Đã giao",   cls:"btn-green"},
+  da_huy:          {text:"✖ Hủy đơn",    cls:"btn-red"},
+};
+const PAY_STATUS = {paid:["✓ Đã thanh toán","ps-paid"], unpaid:["Chưa thanh toán","ps-unpaid"], failed:["Thanh toán lỗi","ps-failed"]};
+const PM_LABEL = {cod:"COD", vnpay:"VNPAY", bank_qr:"CK QR"};
+
+let state = {status:"", search:"", page:1, pages:1};
+
+/* ================== TIỆN ÍCH ================== */
+const vnd = n => Number(n||0).toLocaleString("vi-VN") + "₫";
+const fmtDate = s => { if(!s) return "—"; const d = new Date(s.replace(" ","T"));
+  return d.toLocaleDateString("vi-VN") + " " + d.toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"}); };
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function toast(msg, type="ok"){
+  const t = document.createElement("div");
+  t.className = "toast " + type;
+  t.textContent = msg;
+  document.getElementById("toasts").appendChild(t);
+  setTimeout(()=>t.remove(), 3800);
+}
+
+async function api(path, opts={}){
+  let res;
+  try { res = await fetch(API + path, opts); }
+  catch(e){ throw new Error("Không kết nối được backend — kiểm tra uvicorn đang chạy ở " + API); }
+  const body = await res.json().catch(()=> ({}));
+  if(!res.ok) throw new Error(body.detail || ("Lỗi HTTP " + res.status));
+  return body;
+}
+
+/* ================== TAB THỐNG KÊ ================== */
+async function loadStats(){
+  const d = await api("/admin/orders/stats");
+  const c = d.counts;
+  const tabs = [["", "Tất cả", d.total],
+    ["cho_xac_nhan","Chờ xác nhận",c.cho_xac_nhan], ["da_xac_nhan","Đã xác nhận",c.da_xac_nhan],
+    ["dang_van_chuyen","Đang vận chuyển",c.dang_van_chuyen], ["da_giao","Đã giao",c.da_giao],
+    ["da_huy","Đã hủy",c.da_huy]];
+  document.getElementById("tabs").innerHTML = tabs.map(([s,lbl,n]) =>
+    `<div class="tab ${state.status===s?"active":""}" data-s="${s}" onclick="setStatus('${s}')">
+       <div class="num">${n}</div><div class="lbl">${lbl}</div></div>`).join("");
+  document.getElementById("revenue").innerHTML =
+    `💰 Doanh thu các đơn <b>đã giao</b>: <b>${vnd(d.delivered_revenue)}</b>`;
+}
+
+/* ================== DANH SÁCH ĐƠN ================== */
+async function loadOrders(){
+  const q = new URLSearchParams({page: state.page, limit: LIMIT});
+  if(state.status) q.set("status", state.status);
+  if(state.search) q.set("search", state.search);
+  const d = await api("/admin/orders?" + q);
+  state.pages = d.pages;
+
+  const rowsEl = document.getElementById("orderRows");
+  if(!d.orders.length){
+    rowsEl.innerHTML = `<tr><td colspan="8" class="empty">📭 Không có đơn hàng nào</td></tr>`;
+  } else {
+    rowsEl.innerHTML = d.orders.map(o => {
+      const [psText, psCls] = PAY_STATUS[o.payment_status] || [o.payment_status,""];
+      const paidBtn = (o.payment_status === "unpaid" && o.payment_method === "bank_qr" && o.status !== "da_huy")
+        ? `<button class="btn btn-green" onclick="event.stopPropagation();askMarkPaid(${o.order_id})">💵 Nhận tiền</button>` : "";
+      const btns = paidBtn + o.allowed_next.map(s =>
+        `<button class="btn ${ACTION_BTN[s].cls}" onclick="event.stopPropagation();askTransition(${o.order_id},'${s}','${esc(o.status)}')">${ACTION_BTN[s].text}</button>`).join("");
+      return `<tr onclick="openDetail(${o.order_id})" style="cursor:pointer">
+        <td class="oid">#${o.order_id}</td>
+        <td class="cust"><b>${esc(o.receiver_name)}</b><span>${esc(o.receiver_phone)}</span></td>
+        <td class="hide-sm">${o.item_count}</td>
+        <td class="money">${vnd(o.total_amount)}</td>
+        <td class="hide-sm"><span class="pay-chip pay-${o.payment_method}">${PM_LABEL[o.payment_method] || o.payment_method.toUpperCase()}</span>
+            <span class="pay-status ${psCls}">${psText}</span></td>
+        <td><span class="badge b-${o.status}">${o.status_label}</span></td>
+        <td class="date hide-sm">${fmtDate(o.created_at)}</td>
+        <td><div class="actions">${btns || '<span style="color:#94a3b8;font-size:12px">—</span>'}</div></td>
+      </tr>`;
+    }).join("");
+  }
+  document.getElementById("pageInfo").textContent = `Trang ${state.page}/${state.pages} — ${d.total} đơn`;
+  document.getElementById("prevBtn").disabled = state.page <= 1;
+  document.getElementById("nextBtn").disabled = state.page >= state.pages;
+}
+
+function setStatus(s){ state.status = s; state.page = 1; reloadAll(); }
+function applySearch(){ state.search = document.getElementById("searchInput").value.trim(); state.page = 1; loadOrders().catch(e=>toast(e.message,"err")); }
+function changePage(d){ state.page = Math.min(Math.max(1, state.page + d), state.pages); loadOrders().catch(e=>toast(e.message,"err")); }
+function reloadAll(){ Promise.all([loadStats(), loadOrders()]).catch(e => toast(e.message, "err")); }
+
+/* ================== CHUYỂN TRẠNG THÁI ================== */
+async function askTransition(orderId, newStatus, curStatus){
+  let cancelReason = null;
+  if(newStatus === "da_huy"){
+    cancelReason = prompt(`Hủy đơn #${orderId} — nhập lý do hủy (có thể bỏ trống):`, "");
+    if(cancelReason === null) return;             // bấm Cancel → không hủy
+  } else {
+    if(!confirm(`Chuyển đơn #${orderId}: "${LABELS[curStatus]}" → "${LABELS[newStatus]}"?`)) return;
+  }
+  await doTransition(orderId, newStatus, cancelReason);
+}
+
+async function askMarkPaid(orderId){
+  if(!confirm(`Xác nhận ĐÃ NHẬN TIỀN chuyển khoản cho đơn #${orderId}?\n(Chỉ bấm khi đã thấy tiền vào tài khoản ngân hàng)`)) return;
+  try{
+    const d = await api(`/admin/orders/${orderId}/mark-paid`, {method:"PUT"});
+    toast(d.message, "ok");
+    closeModal();
+    reloadAll();
+  } catch(e){ toast(e.message, "err"); }
+}
+
+async function doTransition(orderId, newStatus, cancelReason){
+  try{
+    const d = await api(`/admin/orders/${orderId}/status`, {
+      method: "PUT", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({status:newStatus, cancel_reason:cancelReason || null})
+    });
+    toast(d.message, "ok");
+    closeModal();
+    reloadAll();
+  } catch(e){ toast(e.message, "err"); }
+}
+
+/* ================== MODAL CHI TIẾT ================== */
+function closeModal(){ document.getElementById("detailOverlay").classList.remove("show"); }
+
+async function openDetail(orderId){
+  try{
+    const d = await api(`/admin/orders/${orderId}`);
+    const o = d.order;
+    document.getElementById("mTitle").textContent = `Đơn hàng #${o.order_id}`;
+    const badge = document.getElementById("mBadge");
+    badge.className = "badge b-" + o.status;
+    badge.textContent = o.status_label;
+
+    const [psText, psCls] = PAY_STATUS[o.payment_status] || [o.payment_status,""];
+    const itemsHtml = o.items.map(it => `
+      <tr>
+        <td>${it.image ? `<img src="${esc(it.image)}" onerror="this.style.display='none'">` : ""}</td>
+        <td style="max-width:280px">${esc(it.product_name)}<br>
+            <span style="color:#64748b;font-size:11.5px">ID: ${it.item_id}${it.brand ? " · " + esc(it.brand) : ""}</span></td>
+        <td style="white-space:nowrap">${vnd(it.price)}</td>
+        <td>×${it.quantity}</td>
+        <td class="money" style="white-space:nowrap">${vnd(it.subtotal)}</td>
+      </tr>`).join("");
+
+    document.getElementById("mBody").innerHTML = `
+      <div class="flow-hint">Luồng trạng thái: Chờ xác nhận → Đã xác nhận → Đang vận chuyển → Đã giao.
+        Chỉ hủy được khi chưa vận chuyển; hủy đơn sẽ tự <b>hoàn tồn kho</b>.</div>
+      <div class="info-grid">
+        <div><span>Người nhận</span><b>${esc(o.receiver_name)}</b></div>
+        <div><span>Điện thoại</span><b>${esc(o.receiver_phone)}</b></div>
+        <div><span>Tài khoản đặt</span>${esc(o.user_name || "?")} (id ${o.user_id})</div>
+        <div><span>Thanh toán</span><span class="pay-chip pay-${o.payment_method}">${PM_LABEL[o.payment_method] || o.payment_method.toUpperCase()}</span>
+             <span class="${psCls}" style="font-size:12.5px">${psText}</span></div>
+        <div style="grid-column:1/-1"><span>Địa chỉ giao</span>${esc(o.shipping_address)}</div>
+        ${o.note ? `<div style="grid-column:1/-1"><span>Ghi chú của khách</span>${esc(o.note)}</div>` : ""}
+        ${o.cancel_reason ? `<div style="grid-column:1/-1;color:var(--red)"><span>Lý do hủy</span>${esc(o.cancel_reason)}</div>` : ""}
+        <div><span>Ngày đặt</span>${fmtDate(o.created_at)}</div>
+        <div><span>Cập nhật cuối</span>${fmtDate(o.updated_at)}</div>
+      </div>
+      <table class="items-tbl" style="width:100%;border-collapse:collapse">
+        <thead><tr><th></th><th style="text-align:left;font-size:11px;color:#64748b">SẢN PHẨM</th>
+          <th style="text-align:left;font-size:11px;color:#64748b">GIÁ</th>
+          <th style="text-align:left;font-size:11px;color:#64748b">SL</th>
+          <th style="text-align:left;font-size:11px;color:#64748b">TẠM TÍNH</th></tr></thead>
+        <tbody>${itemsHtml}</tbody>
+      </table>
+      <div class="modal-total"><span>Tổng cộng:</span><span style="color:var(--blue)">${vnd(o.total_amount)}</span></div>`;
+
+    const mPaidBtn = (o.payment_status === "unpaid" && o.payment_method === "bank_qr" && o.status !== "da_huy")
+      ? `<button class="btn btn-green" onclick="askMarkPaid(${o.order_id})">💵 Đã nhận tiền</button>` : "";
+    document.getElementById("mActions").innerHTML =
+      (mPaidBtn + o.allowed_next.map(s =>
+        `<button class="btn ${ACTION_BTN[s].cls}" onclick="askTransition(${o.order_id},'${s}','${o.status}')">${ACTION_BTN[s].text}</button>`
+      ).join("")) || `<span style="color:#94a3b8;font-size:13px">Trạng thái cuối — không có thao tác</span>`;
+
+    document.getElementById("detailOverlay").classList.add("show");
+  } catch(e){ toast(e.message, "err"); }
+}
+
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
+
+/* ================== KHỞI ĐỘNG ================== */
+reloadAll();
+setInterval(loadStats, 30000);   // tự làm mới badge mỗi 30s
+</script>
+</body>
+</html>
