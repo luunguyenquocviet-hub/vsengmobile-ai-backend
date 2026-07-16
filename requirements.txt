@@ -1,0 +1,27 @@
+# ===== VsengMobile Hybrid AI Backend =====
+# Cài:  pip install -r requirements.txt
+# (transformers/torch chỉ cần cho job cảm xúc ban đêm — máy chỉ chạy API có thể bỏ)
+
+# --- API server ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.5
+python-dotenv>=1.0
+
+# --- Cơ sở dữ liệu ---
+mysql-connector-python>=8.3
+pymongo>=4.6
+
+# --- Thanh toán & bảo mật ---
+bcrypt>=4.1            # hash mật khẩu (API quên mật khẩu)
+
+# --- Xử lý dữ liệu & ML ---
+pandas>=2.1
+numpy>=1.26
+openpyxl>=3.1          # đọc data.xlsx
+scikit-learn>=1.4      # cosine_similarity, train_test_split, metrics
+xgboost>=2.0           # Engine ③
+
+# --- Job cảm xúc PhoBERT (chạy định kỳ, KHÔNG cần cho server) ---
+transformers>=4.38
+torch>=2.1
