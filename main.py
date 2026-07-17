@@ -4,9 +4,6 @@ import datetime
 import predict
 from controllers.tracking_controller import router as tracking_router
 from controllers.product_controller import router as product_router, coldstart_recommend
-from controllers.order_controller import router as order_router      # 🛒 đặt hàng + VNPay
-from controllers.auth_controller import router as auth_router        # 🔑 quên mật khẩu
-from controllers.admin_controller import router as admin_router      # 🛠️ admin đơn hàng
 from controllers.debug_controller import router as debug_router      # 🔬 soi Engine ② (chỉ đọc)
 from config.database import get_mysql
 
@@ -24,19 +21,7 @@ app.add_middleware(
 
 app.include_router(tracking_router, prefix="/api")
 app.include_router(product_router, prefix="/api")
-app.include_router(order_router, prefix="/api")
-app.include_router(auth_router, prefix="/api")
-app.include_router(admin_router, prefix="/api")
 app.include_router(debug_router, prefix="/api")
-
-# Phục vụ các trang web tĩnh (admin đơn hàng, test checkout) ngay từ backend:
-#   http://localhost:8000/web/admin_orders.html
-#   http://localhost:8000/web/test_checkout.html
-from fastapi.staticfiles import StaticFiles
-import os as _os
-_WEB_DIR = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "web")
-if _os.path.isdir(_WEB_DIR):
-    app.mount("/web", StaticFiles(directory=_WEB_DIR, html=True), name="web")
 
 
 class CommentRequest(BaseModel):

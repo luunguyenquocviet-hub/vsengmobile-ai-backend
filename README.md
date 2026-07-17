@@ -7,14 +7,14 @@
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4+-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0+-EB0028?style=for-the-badge)
 
-**Backend AI cho sàn thương mại điện tử bán điện thoại, tích hợp hệ thống gợi ý sản phẩm thông minh**
+**Hệ thống gợi ý sản phẩm thông minh cho sàn thương mại điện tử bán điện thoại**
 sử dụng Item-based Collaborative Filtering, Behavior-based Personalization và XGBoost Ranking
 
 ---
 
 ## 📖 Giới thiệu
 
-**VsengMobile Hybrid AI Backend** là hệ thống backend cho ứng dụng thương mại điện tử chuyên bán điện thoại, được xây dựng với **FastAPI** và tích hợp hệ thống **gợi ý sản phẩm thông minh** kết hợp nhiều engine AI chạy trên dữ liệu hành vi thật của người dùng.
+**VsengMobile Recommendation System** là backend hệ thống **gợi ý sản phẩm thông minh** cho ứng dụng thương mại điện tử chuyên bán điện thoại, được xây dựng với **FastAPI**, kết hợp nhiều engine AI chạy trên dữ liệu hành vi thật của người dùng.
 
 Hệ thống gợi ý hoạt động dựa trên **3 engine chính** (+ 1 job cảm xúc):
 
@@ -37,10 +37,10 @@ Hệ thống gợi ý hoạt động dựa trên **3 engine chính** (+ 1 job c�
 │                     FastAPI Backend 🚀                     │
 │                                                            │
 │  ┌─────────────┐    ┌───────────────────────────────────┐  │
-│  │  Frontend / │    │           API Routes              │  │
-│  │  Web tĩnh   │◄──►│  /api/homepage-feed               │  │
-│  │  (web/*.html)│   │  /api/recommend/{item_id}         │  │
-│  └─────────────┘    │  /api/track-behavior · /api/orders│  │
+│  │   Client    │    │           API Routes              │  │
+│  │  (App /     │◄──►│  /api/homepage-feed               │  │
+│  │  Frontend)  │    │  /api/recommend/{item_id}         │  │
+│  └─────────────┘    │  /api/track-behavior · /products  │  │
 │                     └──────────────┬────────────────────┘  │
 │                                    │                       │
 │                     ┌──────────────▼────────────────────┐  │
@@ -54,7 +54,7 @@ Hệ thống gợi ý hoạt động dựa trên **3 engine chính** (+ 1 job c�
 │                                    │                       │
 │          ┌─────────────────────────▼─────────────────────┐ │
 │          │                Data Layer                     │ │
-│          │  MySQL: products·reviews·users·orders         │ │
+│          │  MySQL: products·reviews·users                │ │
 │          │  MongoDB: user_tracking (hành vi)             │ │
 │          │  ml_models/*.json (ma trận + model XGBoost)   │ │
 │          └───────────────────────────────────────────────┘ │
@@ -67,16 +67,13 @@ Hệ thống gợi ý hoạt động dựa trên **3 engine chính** (+ 1 job c�
 
 ```
 vsengmobile-ai-backend/
-├── main.py                       # Khởi tạo FastAPI, mount routers + web tĩnh
+├── main.py                       # Khởi tạo FastAPI, mount routers
 ├── predict.py                    # Engine ① — cosine similarity
 ├── recommendation_logic.py       # Engine ② — bộ não cá nhân hóa theo hành vi
 │
 ├── controllers/                  # API Routes
 │   ├── product_controller.py     # Trang chủ, tìm kiếm, chi tiết, cold-start
 │   ├── tracking_controller.py    # Tracking hành vi + homepage-feed
-│   ├── order_controller.py       # Đặt hàng + VNPay + SePay/BankQR
-│   ├── auth_controller.py        # Quên mật khẩu (OTP qua Gmail)
-│   ├── admin_controller.py       # Quản trị đơn hàng
 │   └── debug_controller.py       # Soi Engine ①② (chỉ đọc)
 │
 ├── config/
@@ -98,19 +95,10 @@ vsengmobile-ai-backend/
 │   ├── import_to_mysql.py        # Nạp dữ liệu vào MySQL
 │   └── ...
 │
-├── utils/
-│   ├── vnpay.py                  # Ký/verify HMAC-SHA512 VNPay
-│   └── bankqr.py                 # Sinh mã VietQR
-│
 ├── data/                         # Dữ liệu mẫu
 │   ├── data.xlsx                 # Sản phẩm điện thoại
 │   ├── data_danh_gia_AI_HoanChinh.xlsx  # Đánh giá đã chấm cảm xúc AI
 │   └── users_1000.csv            # 1000 user giả lập
-│
-├── web/                          # Trang web tĩnh test/demo
-│   ├── admin_orders.html         # Quản trị đơn hàng
-│   ├── test_checkout.html        # Test thanh toán
-│   └── debug_engine1/2.html      # Demo soi engine
 │
 ├── requirements.txt
 └── .env.example                  # Mẫu cấu hình môi trường
@@ -136,7 +124,7 @@ cd vsengmobile-ai-backend
 ### Bước 2: Tạo file cấu hình môi trường
 
 ```bash
-# Copy file mẫu rồi điền thông tin MySQL / MongoDB / VNPay / Gmail của bạn
+# Copy file mẫu rồi điền thông tin MySQL / MongoDB của bạn
 cp .env.example .env
 ```
 
@@ -160,18 +148,6 @@ Mở trình duyệt và truy cập: **http://localhost:8000/docs** (Swagger UI)
 
 ---
 
-## 🗺️ Các trang chính
-
-| URL | Mô tả |
-|---|---|
-| `/docs` | Swagger UI — thử toàn bộ API |
-| `/web/test_checkout.html` | Test luồng đặt hàng + thanh toán VNPay/QR |
-| `/web/admin_orders.html` | Trang quản trị đơn hàng (thống kê, đổi trạng thái) |
-| `/web/debug_engine1.html` | Demo soi Engine ① — sản phẩm tương tự |
-| `/web/debug_engine2.html` | Demo soi Engine ② — hồ sơ hành vi user |
-
----
-
 ## 🔌 API Endpoints
 
 ### `GET /api/homepage-feed` — gợi ý trang chủ cá nhân hóa
@@ -184,7 +160,7 @@ Mở trình duyệt và truy cập: **http://localhost:8000/docs** (Swagger UI)
 ### Các endpoint chính khác
 
 ```bash
-# Sản phẩm tương tự (Engine ① — trang chi tiết)
+# Sản phẩm tương tự (Engine ① — trang chi tiết, fallback Engine ③)
 GET /api/recommend/{item_id}
 
 # Ghi nhận hành vi (view / click / add_to_cart / buy / skip ...)
@@ -197,18 +173,20 @@ GET /api/products · GET /api/products/{item_id}
 # Trang chủ phụ trợ
 GET /api/top-trending · GET /api/recently-viewed?user_id=...
 
-# Đặt hàng & thanh toán
-POST /api/orders · GET /api/payment/bank/check/{order_id}
-
 # Bình luận (ghi vào MySQL, chờ job PhoBERT chấm cảm xúc)
 POST /api/comments
+
+# Soi engine (debug, chỉ đọc)
+GET /api/debug/engine1/{item_id} · GET /api/debug/engine2/{user_id}
 ```
 
 **Response mẫu** (`GET /api/recommend/155310209`):
 
 ```json
 {
-  "source": "engine_1",
+  "status": "success",
+  "source": "engine1_cf",
+  "target_item": "155310209",
   "recommendations": {
     "155310210": 0.9231,
     "155310215": 0.8874,
@@ -284,14 +262,12 @@ Dữ liệu mẫu được lưu trong `data/`:
 |---|---|---|
 | FastAPI | 0.110+ | API server |
 | Uvicorn | 0.29+ | ASGI server |
-| MySQL | 8.x | Nguồn sự thật: products, reviews, users, orders |
+| MySQL | 8.x | Nguồn sự thật: products, reviews, users |
 | MongoDB | Atlas | Lưu hành vi người dùng (tracking) |
 | pandas / numpy | 2.1+ / 1.26+ | Xử lý dữ liệu |
 | scikit-learn | 1.4+ | Cosine similarity, train/test split, metrics |
 | XGBoost | 2.0+ | Engine ③ — ranking |
 | transformers + torch | 4.38+ / 2.1+ | PhoBERT — phân tích cảm xúc tiếng Việt |
-| bcrypt | 4.1+ | Hash mật khẩu (quên mật khẩu OTP) |
-| VNPay Sandbox | v2.1.0 | Cổng thanh toán |
 
 ---
 
